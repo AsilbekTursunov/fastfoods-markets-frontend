@@ -8,6 +8,8 @@ export interface Category {
   sort: number
 }
 
+
+
 export interface ProductVariant {
   id: string
   name: string // "Kichik (17 sm)", "1.5 L"
