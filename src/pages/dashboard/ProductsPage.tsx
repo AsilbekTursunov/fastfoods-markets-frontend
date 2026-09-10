@@ -8,19 +8,34 @@ import type { Category, CategoryTemplate, Product, ProductVariant } from '@/type
 
 const empty = (categoryId: string): Product => ({ id: '', categoryId, name: '', description: '', price: 0, image: '', available: true, popular: false })
 
-/** "Kichik (17 sm) = 8000 | 1x sosiska" per line  <->  ProductVariant[] */
-const variantsToText = (v?: ProductVariant[]) => (v ?? []).map((x) => `${x.name} = ${x.price}${x.description ? ` | ${x.description}` : ''}`).join('\n')
-const textToVariants = (t: string): ProductVariant[] =>
-  t
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map((l, i) => {
-      const [left, description] = l.split('|').map((x) => x.trim())
-      const [name, price] = left.split('=').map((x) => x.trim())
-      return { id: name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '') || `v${i}`, name, price: Number(price) || 0, description: description || undefined }
-    })
-    .filter((x) => x.name)
+/** One editable size row. Price is a string so the input can be cleared while typing. */
+interface VariantDraft {
+  id: string // '' for a row that does not exist on the server yet
+  name: string
+  price: string
+  description: string
+}
+
+const toDrafts = (v?: ProductVariant[]): VariantDraft[] =>
+  (v ?? []).map((x) => ({ id: x.id, name: x.name, price: String(x.price), description: x.description ?? '' }))
+
+const slugify = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[‘’'ʻ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '')
+
+/** Keep existing ids stable (carts and past orders point at them); only new rows get one. */
+function draftsToVariants(drafts: VariantDraft[]): ProductVariant[] {
+  const used = new Set<string>()
+  return drafts.map((d, i) => {
+    let id = d.id || slugify(d.name) || `v${i + 1}`
+    while (used.has(id)) id = `${id}_${i + 1}`
+    used.add(id)
+    return { id, name: d.name.trim(), price: Number(d.price) || 0, description: d.description.trim() || undefined }
+  })
+}
 
 const priceLabel = (p: Product) => {
   if (!p.variants?.length) return money(p.price)
@@ -36,7 +51,7 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null)
   const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState<string>('')
-  const [variantText, setVariantText] = useState('')
+  const [variants, setVariants] = useState<VariantDraft[]>([])
   const [catsOpen, setCatsOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -66,7 +81,7 @@ export default function ProductsPage() {
   }
 
   const openEditor = (p: Product) => {
-    setVariantText(variantsToText(p.variants))
+    setVariants(toDrafts(p.variants))
     setFormError(null)
     setEditing(p)
   }
@@ -78,8 +93,16 @@ export default function ProductsPage() {
     setSaving(true)
     setFormError(null)
     try {
-      const variants = textToVariants(variantText)
-      await api.upsertProduct(service, { ...editing, variants: variants.length ? variants : undefined })
+      const built = draftsToVariants(variants)
+      if (built.some((v) => !v.name)) throw new Error('Har bir o‘lchamning nomi bo‘lishi kerak')
+      if (built.some((v) => v.price <= 0)) throw new Error('Har bir o‘lchamning narxi 0 dan katta bo‘lsin')
+      if (!built.length && (!editing.price || editing.price <= 0)) throw new Error('Narxni kiriting')
+      await api.upsertProduct(service, {
+        ...editing,
+        // menu shows the cheapest size as "… dan"
+        price: built.length ? Math.min(...built.map((v) => v.price)) : editing.price,
+        variants: built.length ? built : undefined,
+      })
       await load()
       setEditing(null)
     } catch (err) {
@@ -255,17 +278,74 @@ export default function ProductsPage() {
                 ))}
               </select>
             </label>
-            {!variantText.trim() && (
-              <Input label="Narx (so‘m)" type="number" min={0} value={editing.price || ''} onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })} required />
+            {variants.length === 0 ? (
+              <div className="space-y-2">
+                <Input
+                  label="Narx (so‘m)"
+                  type="number"
+                  min={0}
+                  inputMode="numeric"
+                  value={editing.price || ''}
+                  onChange={(e) => setEditing({ ...editing, price: Number(e.target.value) })}
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setVariants([{ id: '', name: '', price: String(editing.price || ''), description: '' }])}
+                >
+                  <Plus size={14} /> O‘lchamlarga bo‘lish
+                </Button>
+                <p className="text-xs text-gray-500">Masalan hot-dog 17 / 24 / 28 sm bo‘lsa, har biriga alohida narx qo‘yiladi.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <span className="block text-sm font-medium text-gray-700">O‘lchamlar va narxlar</span>
+                {variants.map((v, i) => (
+                  <div key={i} className="space-y-2 rounded-xl border border-gray-200 bg-gray-50 p-2">
+                    <div className="flex gap-2">
+                      <input
+                        value={v.name}
+                        onChange={(e) => setVariants(variants.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))}
+                        placeholder="Nomi, masalan: Katta (28 sm)"
+                        className="min-w-0 flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand"
+                      />
+                      <input
+                        value={v.price}
+                        onChange={(e) => setVariants(variants.map((x, j) => (j === i ? { ...x, price: e.target.value.replace(/[^0-9]/g, '') } : x)))}
+                        placeholder="Narx"
+                        inputMode="numeric"
+                        className="w-24 shrink-0 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-brand"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setVariants(variants.filter((_, j) => j !== i))}
+                        className="shrink-0 rounded-lg px-2 text-red-500 hover:bg-red-50"
+                        aria-label="O‘lchamni o‘chirish"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <input
+                      value={v.description}
+                      onChange={(e) => setVariants(variants.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))}
+                      placeholder="Tarkibi (ixtiyoriy)"
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-brand"
+                    />
+                  </div>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" size="sm" onClick={() => setVariants([...variants, { id: '', name: '', price: '', description: '' }])}>
+                    <Plus size={14} /> O‘lcham qo‘shish
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setVariants([])}>
+                    Bitta narxga qaytarish
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">Menyuda eng arzon narx «dan» bilan ko‘rsatiladi.</p>
+              </div>
             )}
-            <Textarea
-              label="O‘lchamlar / variantlar (ixtiyoriy)"
-              rows={4}
-              value={variantText}
-              onChange={(e) => setVariantText(e.target.value)}
-              placeholder={'Har qatorda:  Nomi = narx | tavsif\nKichik (17 sm) = 8000 | 1x sosiska, sabzi salat\nKatta (28 sm) = 20000'}
-              className="font-mono text-sm"
-            />
             <div>
               <span className="mb-1 block text-sm font-medium text-gray-700">Rasm</span>
               <div className="flex items-center gap-3">
