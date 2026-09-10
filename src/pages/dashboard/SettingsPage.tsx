@@ -114,12 +114,12 @@ export default function SettingsPage() {
         <h2 className="text-sm font-bold text-gray-500">Market</h2>
         <Input label="Nomi" value={s.name} onChange={(e) => setS({ ...s, name: e.target.value })} />
         <Input label="Shior" value={s.tagline ?? ''} onChange={(e) => setS({ ...s, tagline: e.target.value })} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input label="Telefon" value={s.phone ?? ''} onChange={(e) => setS({ ...s, phone: e.target.value })} />
           <Input label="Telefon 2" value={s.phone2 ?? ''} onChange={(e) => setS({ ...s, phone2: e.target.value })} />
         </div>
         <Input label="Manzil" value={s.address ?? ''} onChange={(e) => setS({ ...s, address: e.target.value })} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Input label="Ochilish" type="time" value={s.workingHours.open} onChange={(e) => setS({ ...s, workingHours: { ...s.workingHours, open: e.target.value } })} />
           <Input label="Yopilish" type="time" value={s.workingHours.close} onChange={(e) => setS({ ...s, workingHours: { ...s.workingHours, close: e.target.value } })} />
         </div>
@@ -133,7 +133,7 @@ export default function SettingsPage() {
 
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="text-sm font-bold text-gray-500">Yetkazib berish</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Input label="Narxi" type="number" min={0} value={s.deliveryFee} onChange={(e) => setS({ ...s, deliveryFee: Number(e.target.value) })} />
           <Input label="Min. buyurtma" type="number" min={0} value={s.minOrder} onChange={(e) => setS({ ...s, minOrder: Number(e.target.value) })} />
           <Input label="Bepul (dan)" type="number" min={0} value={s.freeDeliveryFrom ?? ''} onChange={(e) => setS({ ...s, freeDeliveryFrom: e.target.value ? Number(e.target.value) : undefined })} />

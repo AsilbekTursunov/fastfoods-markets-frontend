@@ -131,7 +131,78 @@ export default function AdminUsersPage() {
       {accounts.length === 0 ? (
         <div className="rounded-2xl bg-white p-10 text-center text-gray-500 shadow-sm">Hisob yo‘q</div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <>
+        {/* phones: one card per account, so every action stays reachable */}
+        <div className="space-y-2 md:hidden">
+          {accounts.map((a) => {
+            const key = accountKey(a)
+            const isSelf = a.kind === 'platform' && a.user.id === meId
+            const blocked = a.kind === 'platform' && !a.user.active
+            return (
+              <div key={key} className={cn('rounded-2xl bg-white p-3 shadow-sm', blocked && 'opacity-60')}>
+                <div className="flex items-start gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold">
+                      {a.kind === 'service' ? a.admin.name : a.user.name}
+                      {isSelf && <span className="ml-2 text-xs font-normal text-gray-400">(siz)</span>}
+                    </div>
+                    <div className="font-mono text-xs text-gray-500">{a.kind === 'service' ? a.admin.login : a.user.login}</div>
+                  </div>
+                  <div className="flex flex-wrap justify-end gap-1">
+                    <Badge color={a.kind === 'service' ? (a.admin.role === 'owner' ? 'brand' : 'gray') : a.user.role === 'admin' ? 'purple' : 'gray'}>
+                      {a.kind === 'service' ? ROLE_LABEL[a.admin.role] : PLATFORM_ROLE_LABEL[a.user.role]}
+                    </Badge>
+                    {blocked && <Badge color="red">Bloklangan</Badge>}
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-700">
+                  {a.kind === 'service' ? (
+                    <>
+                      <Store size={14} className="shrink-0 text-gray-400" />
+                      <span className="truncate">{serviceName(a.admin.marketSlug)}</span>
+                      <span className="truncate font-mono text-xs text-gray-400">/{a.admin.marketSlug}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={14} className="shrink-0 text-gray-400" /> Developer paneli
+                    </>
+                  )}
+                </div>
+
+                <div className="mt-2 flex gap-1 border-t border-gray-100 pt-2">
+                  <button onClick={() => setForm({ mode: 'edit', account: a })} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tahrirlash">
+                    <Pencil size={16} />
+                  </button>
+                  <button onClick={() => setForm({ mode: 'password', account: a })} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Parol">
+                    <KeyRound size={16} />
+                  </button>
+                  {a.kind === 'platform' && (
+                    <button
+                      onClick={() => act(key, () => adminApi.updateUser(a.user.id, { active: !a.user.active }))}
+                      disabled={busy === key || isSelf}
+                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30"
+                      aria-label={a.user.active ? 'Bloklash' : 'Faollashtirish'}
+                    >
+                      {a.user.active ? <Ban size={16} /> : <CheckCircle2 size={16} />}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => remove(a)}
+                    disabled={busy === key || isSelf}
+                    className="ml-auto rounded-lg p-2 text-red-500 hover:bg-red-50 disabled:opacity-30"
+                    aria-label="O‘chirish"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* tablets and up: the full table */}
+        <div className="hidden overflow-hidden rounded-2xl bg-white shadow-sm md:block">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
               <tr>
@@ -220,6 +291,7 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
+        </>
       )}
 
       <Sheet

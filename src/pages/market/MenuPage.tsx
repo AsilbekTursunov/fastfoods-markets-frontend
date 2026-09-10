@@ -14,6 +14,7 @@ export default function MenuPage() {
   const cart = useMarketCart(market.slug)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState<string>('')
+  const [toast, setToast] = useState<string | null>(null)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const tabsRef = useRef<HTMLDivElement>(null)
 
@@ -50,6 +51,18 @@ export default function MenuPage() {
     Object.values(sectionRefs.current).forEach((el) => el && obs.observe(el))
     return () => obs.disconnect()
   }, [grouped])
+
+  // the market is closed: say so where the customer taps, instead of a dead button
+  const closedNotice = () => {
+    haptic('error')
+    setToast(`Hozir yopiq. Ish vaqti ${market.workingHours.open} – ${market.workingHours.close}.`)
+  }
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(t)
+  }, [toast])
 
   const scrollTo = (id: string) => {
     haptic('select')
@@ -93,12 +106,6 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {!market.isOpen && (
-        <div className="mx-4 mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Hozir yopiq. Ish vaqti: {market.workingHours.open} – {market.workingHours.close}. Buyurtma qabul qilinmaydi.
-        </div>
-      )}
-
       {/* search + tabs (sticky) */}
       <div className="sticky top-0 z-20 bg-[#f5f5f7] pt-3">
         <div className="px-4">
@@ -129,6 +136,11 @@ export default function MenuPage() {
             ))}
           </div>
         )}
+        {!market.isOpen && (
+          <div className="mx-4 mb-2 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900">
+            🕒 Hozir yopiq. Ish vaqti {market.workingHours.open} – {market.workingHours.close}. Buyurtma qabul qilinmaydi.
+          </div>
+        )}
       </div>
 
       {/* popular */}
@@ -143,7 +155,7 @@ export default function MenuPage() {
                 </div>
                 <div className="mt-2 line-clamp-2 text-sm font-semibold leading-tight">{p.name}</div>
                 <div className="mt-1 text-sm font-bold text-brand"><Price p={p} /></div>
-                <AddButton p={p} cart={cart} disabled={!market.isOpen} size="sm" />
+                <AddButton p={p} cart={cart} closed={!market.isOpen} onClosedTap={closedNotice} size="sm" />
               </div>
             ))}
           </div>
@@ -167,7 +179,7 @@ export default function MenuPage() {
                   {p.variants && <div className="mt-0.5 line-clamp-1 text-xs text-gray-400">{p.variants.map((x) => x.name).join(' · ')}</div>}
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div className="font-bold text-brand"><Price p={p} /></div>
-                    {p.available ? <AddButton p={p} cart={cart} disabled={!market.isOpen} /> : <span className="text-xs text-gray-500">Tugagan</span>}
+                    {p.available ? <AddButton p={p} cart={cart} closed={!market.isOpen} onClosedTap={closedNotice} /> : <span className="text-xs text-gray-500">Tugagan</span>}
                   </div>
                 </div>
               </div>
@@ -175,6 +187,12 @@ export default function MenuPage() {
           </div>
         </div>
       ))}
+
+      {toast && (
+        <div className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-lg px-4">
+          <div className="animate-pop rounded-xl bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white shadow-lg">{toast}</div>
+        </div>
+      )}
 
       {/* cart bar */}
       {cart.count > 0 && (
@@ -211,21 +229,39 @@ function Price({ p }: { p: Product }) {
   )
 }
 
-function AddButton({ p, cart, disabled, size = 'md' }: { p: Product; cart: ReturnType<typeof useMarketCart>; disabled?: boolean; size?: 'sm' | 'md' }) {
+function AddButton({
+  p,
+  cart,
+  closed,
+  onClosedTap,
+  size = 'md',
+}: {
+  p: Product
+  cart: ReturnType<typeof useMarketCart>
+  closed?: boolean
+  onClosedTap?: () => void
+  size?: 'sm' | 'md'
+}) {
   const [open, setOpen] = useState(false)
   const qty = cart.qtyOf(p.id)
   const wrap = size === 'sm' ? 'mt-2' : ''
+  // while closed the button stays tappable on purpose: a dead button reads as a broken site
+  const dim = closed ? 'opacity-50' : ''
 
   if (p.variants?.length) {
     return (
       <div className={wrap}>
         <button
-          disabled={disabled}
-          onClick={() => { haptic('light'); setOpen(true) }}
+          onClick={() => {
+            if (closed) return onClosedTap?.()
+            haptic('light')
+            setOpen(true)
+          }}
           className={cn(
-            'rounded-xl font-bold transition active:scale-95 disabled:opacity-40',
+            'rounded-xl font-bold transition active:scale-95',
             qty > 0 ? 'bg-brand text-white' : 'bg-brand-soft text-brand',
             size === 'sm' ? 'w-full py-1.5 text-sm' : 'px-4 py-1.5 text-sm',
+            dim,
           )}
         >
           {qty > 0 ? `${qty} ta · o‘zgartirish` : 'Tanlash'}
@@ -243,11 +279,15 @@ function AddButton({ p, cart, disabled, size = 'md' }: { p: Product; cart: Retur
     )
   return (
     <button
-      disabled={disabled}
-      onClick={() => { haptic('light'); cart.add(p) }}
+      onClick={() => {
+        if (closed) return onClosedTap?.()
+        haptic('light')
+        cart.add(p)
+      }}
       className={cn(
-        'rounded-xl bg-brand-soft font-bold text-brand transition active:scale-95 disabled:opacity-40',
+        'rounded-xl bg-brand-soft font-bold text-brand transition active:scale-95',
         size === 'sm' ? 'mt-2 w-full py-1.5 text-sm' : 'px-4 py-1.5 text-sm',
+        dim,
       )}
     >
       + Qo‘shish

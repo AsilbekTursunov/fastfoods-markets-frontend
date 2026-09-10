@@ -109,7 +109,7 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <h1 className="text-xl font-extrabold">Mahsulotlar</h1>
         <div className="ml-auto flex gap-2">
           <Button size="sm" variant="ghost" onClick={() => setCatsOpen(true)}>
@@ -144,8 +144,49 @@ export default function ProductsPage() {
           )}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <>
+          {/* phones: one card per product — a table this wide would clip its own buttons */}
+          <div className="space-y-2 md:hidden">
+            {shown.map((p) => (
+              <div key={p.id} className={cn('rounded-2xl bg-white p-3 shadow-sm', !p.available && 'opacity-60')}>
+                <div className="flex gap-3">
+                  {p.image && /^(https?:|data:)/.test(p.image) ? (
+                    <img src={p.image} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-gray-50 text-2xl">{p.image || '🍽'}</span>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-semibold leading-tight">{p.name}</div>
+                    <div className="text-xs text-gray-400">{catName(p.categoryId)}</div>
+                    <div className="mt-0.5 text-sm font-semibold">
+                      {priceLabel(p)}
+                      {p.variants && <span className="ml-1 text-xs font-normal text-gray-400">· {p.variants.length} o‘lcham</span>}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-1">
+                    <button onClick={() => openEditor(p)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Tahrirlash">
+                      <Pencil size={16} />
+                    </button>
+                    <button onClick={() => remove(p)} className="rounded-lg p-2 text-red-500 hover:bg-red-50" aria-label="O‘chirish">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center gap-4 border-t border-gray-100 pt-2 text-xs font-medium text-gray-600">
+                  <label className="flex items-center gap-2">
+                    <Toggle on={p.available} onChange={() => toggle(p, 'available')} /> Mavjud
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <Toggle on={!!p.popular} onChange={() => toggle(p, 'popular')} /> Ommabop
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* tablets and up: the full table */}
+          <div className="hidden overflow-hidden rounded-2xl bg-white shadow-sm md:block">
+            <table className="w-full text-sm">
             <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
               <tr>
                 <th className="px-4 py-2">Mahsulot</th>
@@ -194,8 +235,9 @@ export default function ProductsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+            </table>
+          </div>
+        </>
       )}
 
       <Sheet open={!!editing} onClose={() => setEditing(null)} title={editing?.id ? 'Tahrirlash' : 'Yangi mahsulot'}>

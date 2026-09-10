@@ -9,7 +9,11 @@
  *      touch other origins.
  */
 
-const VERSION = 'v1'
+const VERSION = 'v2'
+
+/** The API may sit on another origin in production; it is passed in at registration:
+ *  navigator.serviceWorker.register('/sw.js?api=https://api.example.com') */
+const API_ORIGIN = new URL(self.location.href).searchParams.get('api') || ''
 const SHELL_CACHE = `ffm-shell-${VERSION}`
 const API_CACHE = `ffm-api-${VERSION}`
 const KEEP = [SHELL_CACHE, API_CACHE]
@@ -100,17 +104,23 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
-  if (url.origin !== self.location.origin) return // uploads, CDNs, Telegram — leave alone
+  const sameOrigin = url.origin === self.location.origin
+  const isApi = url.pathname.startsWith('/api/') && (sameOrigin || url.origin === API_ORIGIN)
+
+  // anything else on another origin (uploads, CDNs, Telegram) is left alone
+  if (!sameOrigin && !isApi) return
 
   if (request.mode === 'navigate') {
     event.respondWith(networkFirstPage(request))
     return
   }
 
-  if (url.pathname.startsWith('/api/')) {
+  if (isApi) {
     event.respondWith(networkFirstApi(request))
     return
   }
+
+  if (!sameOrigin) return
 
   if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest') {
     event.respondWith(cacheFirst(request))

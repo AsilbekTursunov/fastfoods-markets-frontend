@@ -1,6 +1,6 @@
 /** Service worker registration, install prompt and online state. */
 
-const API_CACHE = 'ffm-api-v1'
+const API_CACHE = 'ffm-api-v2'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -77,8 +77,19 @@ export function registerServiceWorker() {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
 
   window.addEventListener('load', () => {
+    // tell the worker where the API lives so it can cache it even on another origin
+    let swUrl = '/sw.js'
+    const apiBase = import.meta.env.VITE_API_URL
+    if (apiBase) {
+      try {
+        swUrl += `?api=${encodeURIComponent(new URL(apiBase, location.href).origin)}`
+      } catch {
+        /* malformed VITE_API_URL — fall back to same-origin caching only */
+      }
+    }
+
     navigator.serviceWorker
-      .register('/sw.js')
+      .register(swUrl)
       .then((reg) => {
         if (reg.waiting) {
           waitingWorker = reg.waiting
