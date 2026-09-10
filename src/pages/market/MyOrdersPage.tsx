@@ -1,31 +1,58 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { useMarket } from './MarketContext'
 import { api } from '@/lib/api'
 import { money, timeAgo } from '@/lib/format'
-import { getTgUser } from '@/lib/telegram'
-import { Button, Empty, Spinner } from '@/components/ui'
+import { getTgUser, haptic } from '@/lib/telegram'
+import { Button, Empty, Spinner, cn } from '@/components/ui'
 import { StatusBadge } from '@/components/status'
 import type { Order } from '@/types'
+
+/** the customer is matched by Telegram id, or by the phone left on the last order */
+function customerKeys() {
+  let phone: string | undefined
+  try {
+    phone = JSON.parse(localStorage.getItem('ffm:profile') || '{}').phone
+  } catch {
+    /* no saved profile */
+  }
+  return { tgId: getTgUser()?.id, phone }
+}
 
 export default function MyOrdersPage() {
   const { market } = useMarket()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[] | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(
+    async (manual = false) => {
+      const { tgId, phone } = customerKeys()
+      if (manual) {
+        setRefreshing(true)
+        setError(null)
+        haptic('light')
+      }
+      try {
+        setOrders(await api.getMyOrders(market.slug, tgId, phone))
+      } catch (e) {
+        // a background poll that fails must not wipe the list already on screen
+        if (manual) setError(e instanceof Error ? e.message : 'Yangilab bo‘lmadi')
+        else setOrders((prev) => prev ?? [])
+      } finally {
+        if (manual) setRefreshing(false)
+      }
+    },
+    [market.slug],
+  )
 
   useEffect(() => {
-    const tgUser = getTgUser()
-    let phone: string | undefined
-    try {
-      phone = JSON.parse(localStorage.getItem('ffm:profile') || '{}').phone
-    } catch {
-      /* ignore */
-    }
-    api.getMyOrders(market.slug, tgUser?.id, phone).then(setOrders).catch(() => setOrders([]))
-    const t = setInterval(() => api.getMyOrders(market.slug, tgUser?.id, phone).then(setOrders).catch(() => {}), 15000)
+    load()
+    const t = setInterval(load, 15000)
     return () => clearInterval(t)
-  }, [market.slug])
+  }, [load])
 
   return (
     <div className="pb-safe">
@@ -34,7 +61,17 @@ export default function MyOrdersPage() {
           <ArrowLeft size={20} />
         </button>
         <h1 className="text-lg font-bold">Buyurtmalarim</h1>
+        <button
+          onClick={() => load(true)}
+          disabled={refreshing}
+          className="ml-auto rounded-xl bg-white p-2 text-gray-600 shadow-sm disabled:opacity-60"
+          aria-label="Yangilash"
+        >
+          <RefreshCw size={18} className={cn(refreshing && 'animate-spin')} />
+        </button>
       </div>
+
+      {error && <div className="mx-4 mb-2 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
 
       {orders === null ? (
         <Spinner />
@@ -44,9 +81,14 @@ export default function MyOrdersPage() {
           title="Buyurtmalar yo‘q"
           text="Birinchi buyurtmangizni bering"
           action={
-            <Link to={`/markets/${market.slug}`}>
-              <Button>Menyuga o‘tish</Button>
-            </Link>
+            <div className="flex flex-col items-center gap-2">
+              <Link to={`/markets/${market.slug}`}>
+                <Button>Menyuga o‘tish</Button>
+              </Link>
+              <Button variant="ghost" size="sm" loading={refreshing} onClick={() => load(true)}>
+                <RefreshCw size={14} /> Yangilash
+              </Button>
+            </div>
           }
         />
       ) : (
