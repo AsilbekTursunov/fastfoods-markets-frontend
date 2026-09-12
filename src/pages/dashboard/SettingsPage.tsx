@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { RefreshCw, Send, Eye, EyeOff, Megaphone, ExternalLink } from 'lucide-react'
+import { RefreshCw, Send, Eye, EyeOff, Megaphone, ExternalLink, Bike, Plus, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError, isMock } from '@/lib/api'
 import { DEFAULT_PROMO_BUTTON, DEFAULT_PROMO_TEXT } from '@/lib/mock'
 import { Button, Input, Spinner, Textarea, cn } from '@/components/ui'
 import { DELIVERY_LABEL, PAYMENT_LABEL } from '@/components/status'
-import type { DeliveryType, MarketSettings, PaymentType, PromoTarget, TelegramStatus } from '@/types'
+import type { Courier, DeliveryType, MarketSettings, PaymentType, PromoTarget, TelegramStatus } from '@/types'
 
 const ALL_PAYMENTS: PaymentType[] = ['cash', 'card', 'click', 'payme']
 const ALL_DELIVERY: DeliveryType[] = ['delivery', 'pickup']
@@ -39,6 +39,11 @@ export default function SettingsPage() {
 
   const promoText = s.promoText ?? DEFAULT_PROMO_TEXT
   const promoButtonText = s.promoButtonText || DEFAULT_PROMO_BUTTON
+
+  const couriers: Courier[] = s.couriers ?? []
+  const setCourier = (i: number, patch: Partial<Courier>) => setS({ ...s, couriers: couriers.map((c, k) => (k === i ? { ...c, ...patch } : c)) })
+  const addCourier = () => setS({ ...s, couriers: [...couriers, { name: '', tgId: '' }] })
+  const removeCourier = (i: number) => setS({ ...s, couriers: couriers.filter((_, k) => k !== i) })
 
   const sendPromo = async () => {
     setPromoBusy(true)
@@ -80,7 +85,8 @@ export default function SettingsPage() {
     setError(null)
     try {
       // send the full object: backend overwrites telegramBotToken with whatever we send
-      const saved = await api.updateSettings(service, s)
+      const cleaned: MarketSettings = { ...s, couriers: (s.couriers ?? []).filter((c) => c.name.trim() || c.tgId.trim()) }
+      const saved = await api.updateSettings(service, cleaned)
       // the backend strips keys its schema does not know; keep them locally and warn
       const dropped: string[] = []
       const keep: Partial<MarketSettings> = {}
@@ -219,6 +225,44 @@ export default function SettingsPage() {
           {isMock && <span className="text-xs text-gray-400">(mock rejim)</span>}
         </div>
         <p className="text-xs text-gray-400">Sinov xabari saqlangan sozlamalar bilan yuboriladi — token yoki ID ni o‘zgartirgan bo‘lsangiz avval «Saqlash» bosing.</p>
+      </section>
+
+      <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="flex items-center gap-2">
+          <Bike size={16} className="text-brand" />
+          <h2 className="text-sm font-bold text-gray-500">Yetkazuvchilar</h2>
+          <span className="text-xs text-gray-400">{couriers.length ? `${couriers.length} ta` : ''}</span>
+        </div>
+        <p className="text-xs text-gray-500">
+          Yetkazib berish buyurtmasi <b>qabul qilingan</b> zahoti har bir yetkazuvchining shaxsiy chatiga to‘liq ma’lumot boradi:
+          manzil, xarita, telefon, mahsulotlar va olinadigan summa. Holat o‘zgarganda xabar yangilanadi.
+          Yetkazuvchi botga bir marta <span className="font-mono">/start</span> bosgan bo‘lishi kerak.
+        </p>
+
+        {couriers.length === 0 && <div className="rounded-xl bg-gray-50 px-3 py-3 text-sm text-gray-500">Hozircha yetkazuvchi qo‘shilmagan.</div>}
+
+        <div className="space-y-2">
+          {couriers.map((c, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+              <Input label={i === 0 ? 'Ismi' : undefined} value={c.name} onChange={(e) => setCourier(i, { name: e.target.value })} placeholder="Ali" />
+              <Input
+                label={i === 0 ? 'Telegram ID' : undefined}
+                value={c.tgId}
+                onChange={(e) => setCourier(i, { tgId: e.target.value.replace(/\D/g, '') })}
+                placeholder="123456789"
+                inputMode="numeric"
+              />
+              <button type="button" onClick={() => removeCourier(i)} className="mb-0.5 rounded-xl p-3 text-red-500 hover:bg-red-50" aria-label="O‘chirish">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <Button type="button" variant="secondary" size="sm" onClick={addCourier} disabled={couriers.length >= 50}>
+          <Plus size={14} /> Yetkazuvchi qo‘shish
+        </Button>
+        <p className="text-xs text-gray-400">ID ni @userinfobot dan oling. Guruh ID lari (manfiy) bu yerga to‘g‘ri kelmaydi — faqat shaxsiy foydalanuvchi ID.</p>
       </section>
 
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">

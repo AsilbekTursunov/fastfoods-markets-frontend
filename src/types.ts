@@ -126,6 +126,15 @@ export interface MarketSettings {
   /** promo message shown above the "open mini app" button */
   promoText?: string
   promoButtonText?: string
+  /** couriers who receive every delivery order once it is accepted */
+  couriers?: Courier[]
+}
+
+/** A courier: gets the full order (address, phone, map) in their private Telegram chat. */
+export interface Courier {
+  name: string
+  /** Telegram user id, digits only (from @userinfobot) */
+  tgId: string
 }
 
 export type PromoTarget = 'group' | 'owner' | 'both'
