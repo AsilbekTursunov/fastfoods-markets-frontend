@@ -256,7 +256,7 @@ export default function ProductEditorPage() {
               />
             </div>
           </div>
-          <span className="mt-1 block text-xs text-gray-400">jpeg, png, webp, gif · 5 MB gacha</span>
+          <span className="mt-1 block text-xs text-gray-400">jpeg, png, webp, gif · 15 MB gacha — server o‘zi kichraytiradi</span>
         </div>
 
         <Textarea label="Tavsif" rows={2} value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />

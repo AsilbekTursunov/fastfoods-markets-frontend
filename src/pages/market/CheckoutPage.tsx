@@ -60,12 +60,24 @@ export default function CheckoutPage() {
   const deliveryFee = est.fee
   const total = cart.subtotal + deliveryFee
 
+  // delivery-only market: it is "selected" from the start, so ask for the location right away (once, silently)
+  const autoAsked = useRef(false)
+  useEffect(() => {
+    if (deliveryType === 'delivery' && !location && !autoAsked.current) {
+      autoAsked.current = true
+      void askLocation(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deliveryType])
+
   const chooseDelivery = (v: DeliveryType) => {
     haptic('select')
     setDeliveryType(v)
     setErrors((e) => ({ ...e, deliveryType: '' }))
-    // location belongs to delivery only
+    // location belongs to delivery only: drop it for pickup, ask for it as soon as delivery is chosen
     if (v === 'pickup') setLocation(null)
+    // choosing delivery triggers the effect above; allow it to ask again after a pickup→delivery switch
+    else autoAsked.current = false
   }
 
   const askTelegramPhone = async () => {
@@ -82,16 +94,21 @@ export default function CheckoutPage() {
     }
   }
 
-  const askLocation = async () => {
+  /**
+   * Ask the device for its position. `silent` is used for the automatic request that fires
+   * when the customer picks delivery: a refusal there is not an error — the address field
+   * is still available — so no alert. The manual button keeps the alert.
+   */
+  const askLocation = async (silent = false) => {
     setLocLoading(true)
-    haptic('light')
+    if (!silent) haptic('light')
     const loc = await requestLocation()
     setLocLoading(false)
     if (loc) {
       setLocation(loc)
       setErrors((e) => ({ ...e, address: '' }))
       haptic('success')
-    } else {
+    } else if (!silent) {
       haptic('error')
       const msg = 'Lokatsiyani olib bo‘lmadi. Manzil yoki mo‘ljalni yozib qoldiring.'
       tg?.showAlert?.(msg) ?? alert(msg)
@@ -218,7 +235,7 @@ export default function CheckoutPage() {
           {deliveryType === null && !errors.deliveryType && <div className="text-xs text-gray-400">Davom etish uchun birini tanlang</div>}
           {isDelivery && (
             <>
-              <Button type="button" variant={location ? 'ghost' : 'secondary'} full loading={locLoading} onClick={askLocation}>
+              <Button type="button" variant={location ? 'ghost' : 'secondary'} full loading={locLoading} onClick={() => askLocation()}>
                 {location ? <CheckCircle2 size={18} className="text-green-600" /> : <Navigation size={18} />}
                 {location ? 'Lokatsiya olindi' : 'Lokatsiyani yuborish'}
               </Button>

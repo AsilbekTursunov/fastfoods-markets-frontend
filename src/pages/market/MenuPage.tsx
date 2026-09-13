@@ -114,7 +114,7 @@ export default function MenuPage() {
 			</div>
 
 			{/* search + tabs (sticky) */}
-			<div className='sticky top-0 z-20 bg-[#f5f5f7] pt-3'>
+			<div className='sticky top-0 z-20 bg-[#f5f5f7] pt-10 '>
 				<div className='px-4'>
 					<div className='flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 shadow-sm'>
 						<Search size={18} className='text-gray-400' />
@@ -164,6 +164,7 @@ export default function MenuPage() {
 								cart={cart}
 								closed={!market.isOpen}
 								onClosedTap={closedNotice}
+								// className='w-65 shrink-0 snap-start'
 							/>
 						))}
 					</div>
@@ -271,14 +272,14 @@ function PopularCard({ p, cart, closed, onClosedTap }: { p: Product; cart: Retur
 				)}
 			</div>
 
-			<div className='flex min-h-0 flex-1 justify-between flex-col p-2 text-center'>
-				<div className='line-clamp-2 text-lg font-bold leading-tight'>{p.name}</div>
+			<div className='flex min-h-0 flex-1 justify-between flex-col p-2 text-start'>
+				<div className='line-clamp-2 text-base font-bold leading-tight'>{p.name}</div>
 				{(p.description || hasVariants) && (
-					<div className='mt-1 line-clamp-2 text-sm leading-snug text-gray-500'>
+					<div className=' line-clamp-5 text-sm leading-snug text-gray-500'>
 						{p.description || p.variants!.map(x => x.name).join(' · ')}
 					</div>
 				)}
-				<div className=' pt-2'>
+				<div className=''>
 					{!p.available ? (
 						<div className='flex h-[52px] items-center justify-center rounded-[10px] bg-gray-200 text-sm font-semibold text-gray-500'>
 							Tugagan
@@ -313,7 +314,7 @@ function PopularCard({ p, cart, closed, onClosedTap }: { p: Product; cart: Retur
 						<button
 							onClick={add}
 							className={cn(
-								'h-[52px] w-full rounded-[10px] text-sm font-semibold transition active:scale-[0.98]',
+								'py-2 w-full rounded-[10px] text-sm font-semibold transition active:scale-[0.98]',
 								dark,
 								closed && 'opacity-60',
 							)}
@@ -436,7 +437,7 @@ function ProductCard({
 				)}
 				<div className='mt-1 line-clamp-2 text-[15px] font-medium leading-snug'>{p.name}</div>
 				{(p.description || hasVariants) && (
-					<div className='mt-0.5 line-clamp-1 text-sm text-gray-400'>
+					<div className='mt-0.5 line-clamp-5 text-sm text-gray-400'>
 						{p.description || p.variants!.map(x => x.name).join(' · ')}
 					</div>
 				)}
