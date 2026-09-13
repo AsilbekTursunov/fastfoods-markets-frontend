@@ -24,6 +24,8 @@ export interface Product {
   description?: string
   /** price for simple products; for products with variants = lowest variant price ("dan") */
   price: number
+  /** pre-discount price; when above `price` the card shows it struck through with a "-N%" badge */
+  oldPrice?: number
   variants?: ProductVariant[]
   image?: string
   available: boolean
@@ -40,7 +42,13 @@ export interface Market {
   phone2?: string
   address?: string
   currency: string
+  /** price up to `deliveryBaseKm`; beyond that `deliveryPerKm` per started km */
   deliveryFee: number
+  deliveryBaseKm?: number
+  /** 0 or absent = flat fee regardless of distance */
+  deliveryPerKm?: number
+  /** where the kitchen is; without it the fee cannot depend on distance */
+  location?: GeoPoint
   minOrder: number
   freeDeliveryFrom?: number
   workingHours: { open: string; close: string } // "09:00" - "23:00"
@@ -78,6 +86,8 @@ export interface Order {
   items: OrderItem[]
   subtotal: number
   deliveryFee: number
+  /** market → customer distance the fee was based on, when both locations were known */
+  distanceKm?: number
   total: number
   customer: Customer
   deliveryType: DeliveryType
@@ -109,6 +119,9 @@ export interface MarketSettings {
   phone2?: string
   address?: string
   deliveryFee: number
+  deliveryBaseKm?: number
+  deliveryPerKm?: number
+  location?: GeoPoint | null
   minOrder: number
   freeDeliveryFrom?: number
   workingHours: { open: string; close: string }

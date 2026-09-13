@@ -101,7 +101,7 @@ export default function DashboardLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* mobile header */}
-        <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 md:hidden">
+        <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 pb-3 pt-safe md:hidden">
           <div className="text-2xl">{svc.logo}</div>
           <div className="font-extrabold">{svc.name}</div>
           <button onClick={logout} className="ml-auto rounded-lg p-2 text-gray-500">
@@ -109,7 +109,7 @@ export default function DashboardLayout() {
           </button>
         </header>
 
-        <main className="flex-1 p-4 pb-24 md:p-6 md:pb-6">
+        <main className="flex-1 p-4 pb-bar md:p-6 md:pb-6">
           <UpdateBanner />
           <OfflineBanner syncKey={`orders:${service}`} className="mb-3" />
           <Outlet />

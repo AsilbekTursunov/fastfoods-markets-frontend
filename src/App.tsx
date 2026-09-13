@@ -13,6 +13,7 @@ import MyOrdersPage from './pages/market/MyOrdersPage'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import OrdersPage from './pages/dashboard/OrdersPage'
 import ProductsPage from './pages/dashboard/ProductsPage'
+import ProductEditorPage from './pages/dashboard/ProductEditorPage'
 import StatsPage from './pages/dashboard/StatsPage'
 import SettingsPage from './pages/dashboard/SettingsPage'
 
@@ -42,6 +43,8 @@ export default function App() {
         <Route path="/dashboard/:service" element={<DashboardLayout />}>
           <Route index element={<OrdersPage />} />
           <Route path="products" element={<ProductsPage />} />
+          <Route path="products/new" element={<ProductEditorPage />} />
+          <Route path="products/:id/edit" element={<ProductEditorPage />} />
           <Route path="stats" element={<StatsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, ShoppingBag, Clock, Phone, ClipboardList } from 'lucide-react'
+import { Search, ShoppingBag, Clock, Phone, ClipboardList, Plus } from 'lucide-react'
 import { useMarket } from './MarketContext'
 import { useMarketCart } from '@/store/cart'
 import { money } from '@/lib/format'
@@ -73,226 +73,378 @@ export default function MenuPage() {
   }
 
   return (
-    <div className="pb-28">
-      {/* header */}
-      <div className="bg-brand px-4 pb-5 pt-14 text-white">
-        <div className="flex items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl">{market.logo ?? '🍽'}</div>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-xl font-extrabold">{market.name}</h1>
-            <p className="truncate text-sm text-white/80">{market.tagline}</p>
-          </div>
-          <Link to="orders" className="rounded-xl bg-white/20 p-2.5" aria-label="Buyurtmalarim">
-            <ClipboardList size={22} />
-          </Link>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/85">
-          <span className="inline-flex items-center gap-1">
-            <Clock size={13} /> {market.workingHours.open} – {market.workingHours.close}
-          </span>
-          {market.phone && (
-            <a href={`tel:${market.phone}`} className="inline-flex items-center gap-1">
-              <Phone size={13} /> {market.phone}
-            </a>
-          )}
-          {market.phone2 && (
-            <a href={`tel:${market.phone2}`} className="inline-flex items-center gap-1">
-              <Phone size={13} /> {market.phone2}
-            </a>
-          )}
-          <span className={cn('rounded-full px-2 font-semibold', market.isOpen ? 'bg-green-500/30' : 'bg-red-500/40')}>
-            {market.isOpen ? 'Ochiq' : 'Yopiq'}
-          </span>
-        </div>
-      </div>
+		<div className='pb-bar'>
+			{/* header: pt-hero keeps it clear of the notch and the Telegram header */}
+			<div className='bg-brand px-4 pb-5 pt-hero text-white'>
+				<div className='flex items-center gap-3'>
+					<div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl'>
+						{market.logo ?? '🍽'}
+					</div>
+					<div className='min-w-0 flex-1'>
+						<h1 className='truncate text-xl font-extrabold'>{market.name}</h1>
+						<p className='truncate text-sm text-white/80'>{market.tagline}</p>
+					</div>
+					<Link to='orders' className='rounded-xl bg-white/20 p-2.5' aria-label='Buyurtmalarim'>
+						<ClipboardList size={22} />
+					</Link>
+				</div>
+				<div className='mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-white/85'>
+					<span className='inline-flex items-center gap-1'>
+						<Clock size={13} /> {market.workingHours.open} – {market.workingHours.close}
+					</span>
+					{market.phone && (
+						<a href={`tel:${market.phone}`} className='inline-flex items-center gap-1'>
+							<Phone size={13} /> {market.phone}
+						</a>
+					)}
+					{market.phone2 && (
+						<a href={`tel:${market.phone2}`} className='inline-flex items-center gap-1'>
+							<Phone size={13} /> {market.phone2}
+						</a>
+					)}
+					<span
+						className={cn(
+							'rounded-full px-2 font-semibold',
+							market.isOpen ? 'bg-green-500/30' : 'bg-red-500/40',
+						)}
+					>
+						{market.isOpen ? 'Ochiq' : 'Yopiq'}
+					</span>
+				</div>
+			</div>
 
-      {/* search + tabs (sticky) */}
-      <div className="sticky top-0 z-20 bg-[#f5f5f7] pt-3">
-        <div className="px-4">
-          <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 shadow-sm">
-            <Search size={18} className="text-gray-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Qidirish..."
-              className="w-full bg-transparent text-[15px] outline-none"
-            />
-          </div>
-        </div>
-        {!query && (
-          <div ref={tabsRef} className="no-scrollbar mt-2 flex gap-2 overflow-x-auto px-4 pb-2">
-            {grouped.map(({ cat }) => (
-              <button
-                key={cat.id}
-                data-tab={cat.id}
-                onClick={() => scrollTo(cat.id)}
-                className={cn(
-                  'shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition',
-                  active === cat.id ? 'bg-brand text-white' : 'bg-white text-gray-700 shadow-sm',
-                )}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
-        {!market.isOpen && (
-          <div className="mx-4 mb-2 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900">
-            🕒 Hozir yopiq. Ish vaqti {market.workingHours.open} – {market.workingHours.close}. Buyurtma qabul qilinmaydi.
-          </div>
-        )}
-      </div>
+			{/* search + tabs (sticky) */}
+			<div className='sticky top-0 z-20 bg-[#f5f5f7] pt-3'>
+				<div className='px-4'>
+					<div className='flex items-center gap-2 rounded-xl bg-white px-3 py-2.5 shadow-sm'>
+						<Search size={18} className='text-gray-400' />
+						<input
+							value={query}
+							onChange={e => setQuery(e.target.value)}
+							placeholder='Qidirish...'
+							className='w-full bg-transparent text-[15px] outline-none'
+						/>
+					</div>
+				</div>
+				{!query && (
+					<div ref={tabsRef} className='no-scrollbar mt-2 flex gap-2 overflow-x-auto px-4 pb-2'>
+						{grouped.map(({ cat }) => (
+							<button
+								key={cat.id}
+								data-tab={cat.id}
+								onClick={() => scrollTo(cat.id)}
+								className={cn(
+									'shrink-0 rounded-full px-4 py-1.5 text-sm font-semibold transition',
+									active === cat.id ? 'bg-brand text-white' : 'bg-white text-gray-700 shadow-sm',
+								)}
+							>
+								{cat.name}
+							</button>
+						))}
+					</div>
+				)}
+				{!market.isOpen && (
+					<div className='mx-4 mb-2 rounded-xl bg-amber-100 px-3 py-2 text-sm font-medium text-amber-900'>
+						🕒 Hozir yopiq. Ish vaqti {market.workingHours.open} – {market.workingHours.close}.
+						Buyurtma qabul qilinmaydi.
+					</div>
+				)}
+			</div>
 
-      {/* popular */}
-      {!query && popular.length > 0 && (
-        <div className="mt-3">
-          <h2 className="px-4 text-base font-bold">🔥 Ommabop</h2>
-          <div className="no-scrollbar mt-2 flex gap-3 overflow-x-auto px-4 pb-1">
-            {popular.map((p) => (
-              <div key={p.id} className="w-36 shrink-0 rounded-2xl bg-white p-3 shadow-sm">
-                <div className="flex h-20 items-center justify-center rounded-xl bg-gray-50 text-4xl">
-                  <ProductImage p={p} />
-                </div>
-                <div className="mt-2 line-clamp-2 text-sm font-semibold leading-tight">{p.name}</div>
-                <div className="mt-1 text-sm font-bold text-brand"><Price p={p} /></div>
-                <AddButton p={p} cart={cart} closed={!market.isOpen} onClosedTap={closedNotice} size="sm" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+			{/* popular */}
+			{!query && popular.length > 0 && (
+				<div className='mt-3'>
+					<h2 className='px-4 text-base font-bold'>🔥 Ommabop</h2>
+					{/* pb-10 leaves room for the 40px blur of the card shadow; snap keeps one card centred after a swipe */}
+					<div className='no-scrollbar mt-3 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-10 pt-2'>
+						{popular.map(p => (
+							<PopularCard
+								key={p.id}
+								p={p}
+								cart={cart}
+								closed={!market.isOpen}
+								onClosedTap={closedNotice}
+							/>
+						))}
+					</div>
+				</div>
+			)}
 
-      {/* sections */}
-      {grouped.length === 0 && <div className="py-16 text-center text-gray-500">Hech narsa topilmadi</div>}
-      {grouped.map(({ cat, items }) => (
-        <div key={cat.id} data-cat={cat.id} ref={(el) => (sectionRefs.current[cat.id] = el)} className="mt-4 px-4">
-          <h2 className="text-base font-bold">{cat.name}</h2>
-          <div className="mt-2 space-y-2">
-            {items.map((p) => (
-              <div key={p.id} className={cn('flex gap-3 rounded-2xl bg-white p-3 shadow-sm', !p.available && 'opacity-50')}>
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-4xl">
-                  <ProductImage p={p} />
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="font-semibold leading-tight">{p.name}</div>
-                  {p.description && <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">{p.description}</div>}
-                  {p.variants && <div className="mt-0.5 line-clamp-1 text-xs text-gray-400">{p.variants.map((x) => x.name).join(' · ')}</div>}
-                  <div className="mt-auto flex items-center justify-between pt-2">
-                    <div className="font-bold text-brand"><Price p={p} /></div>
-                    {p.available ? <AddButton p={p} cart={cart} closed={!market.isOpen} onClosedTap={closedNotice} /> : <span className="text-xs text-gray-500">Tugagan</span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+			{/* sections */}
+			{grouped.length === 0 && (
+				<div className='py-16 text-center text-gray-500'>Hech narsa topilmadi</div>
+			)}
+			{grouped.map(({ cat, items }) => (
+				<div
+					key={cat.id}
+					data-cat={cat.id}
+					ref={el => (sectionRefs.current[cat.id] = el)}
+					className='mt-4 px-4'
+				>
+					<h2 className='text-base font-bold'>{cat.name}</h2>
+					<div className='mt-2 grid grid-cols-2 gap-3'>
+						{items.map(p => (
+							<ProductCard
+								key={p.id}
+								p={p}
+								cart={cart}
+								closed={!market.isOpen}
+								onClosedTap={closedNotice}
+							/>
+						))}
+					</div>
+				</div>
+			))}
 
-      {toast && (
-        <div className="fixed inset-x-0 bottom-24 z-40 mx-auto max-w-lg px-4">
-          <div className="animate-pop rounded-xl bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white shadow-lg">{toast}</div>
-        </div>
-      )}
+			{toast && (
+				<div className='fixed inset-x-0 bottom-24 z-40 mx-auto max-w-lg px-4'>
+					<div className='animate-pop rounded-xl bg-gray-900 px-4 py-3 text-center text-sm font-medium text-white shadow-lg'>
+						{toast}
+					</div>
+				</div>
+			)}
 
-      {/* cart bar */}
-      {cart.count > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg px-4 pb-safe">
-          <Link
-            to="cart"
-            className="animate-pop flex items-center justify-between rounded-2xl bg-brand px-4 py-3.5 text-white shadow-lg"
-          >
-            <span className="flex items-center gap-2 font-semibold">
-              <ShoppingBag size={20} />
-              <span className="rounded-full bg-white/25 px-2 text-sm">{cart.count}</span>
-              Savat
-            </span>
-            <span className="font-bold">{money(cart.subtotal, market.currency)}</span>
-          </Link>
-        </div>
-      )}
-    </div>
-  )
+			{/* cart bar */}
+			{cart.count > 0 && (
+				<div className='fixed inset-x-0 bottom-0 z-30 mx-auto max-w-lg px-4 pb-safe'>
+					<Link
+						to='cart'
+						className='animate-pop flex items-center justify-between rounded-2xl bg-brand px-4 py-3.5 text-white shadow-lg'
+					>
+						<span className='flex items-center gap-2 font-semibold'>
+							<ShoppingBag size={20} />
+							<span className='rounded-full bg-white/25 px-2 text-sm'>{cart.count}</span>
+							Savat
+						</span>
+						<span className='font-bold'>{money(cart.subtotal, market.currency)}</span>
+					</Link>
+				</div>
+			)}
+		</div>
+	)
 }
 
-function ProductImage({ p }: { p: Product }) {
-  if (p.image && /^https?:\/\//.test(p.image)) return <img src={p.image} alt={p.name} className="h-full w-full rounded-xl object-cover" loading="lazy" />
-  return <span>{p.image || '🍽'}</span>
-}
-
-function Price({ p }: { p: Product }) {
+/**
+ * "Ommabop" showcase card, fixed 261×416: edge-to-edge picture with the price tag sitting on
+ * it, centred name and description, full-width dark button pinned to the bottom.
+ * Sizes are literal on purpose — the design spec gives them in pixels.
+ */
+function PopularCard({ p, cart, closed, onClosedTap }: { p: Product; cart: ReturnType<typeof useMarketCart>; closed?: boolean; onClosedTap?: () => void }) {
   const { market } = useMarket()
-  return (
-    <>
-      {money(p.price, market.currency)}
-      {p.variants && <span className="ml-1 text-xs font-medium text-gray-400">dan</span>}
-    </>
-  )
-}
-
-function AddButton({
-  p,
-  cart,
-  closed,
-  onClosedTap,
-  size = 'md',
-}: {
-  p: Product
-  cart: ReturnType<typeof useMarketCart>
-  closed?: boolean
-  onClosedTap?: () => void
-  size?: 'sm' | 'md'
-}) {
   const [open, setOpen] = useState(false)
   const qty = cart.qtyOf(p.id)
-  const wrap = size === 'sm' ? 'mt-2' : ''
-  // while closed the button stays tappable on purpose: a dead button reads as a broken site
-  const dim = closed ? 'opacity-50' : ''
+  const hasVariants = !!p.variants?.length
+  const isUrl = !!p.image && /^https?:\/\//.test(p.image)
+  const discount = p.oldPrice && p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0
+  const dark = 'bg-[#052014] text-white'
 
-  if (p.variants?.length) {
-    return (
-      <div className={wrap}>
-        <button
-          onClick={() => {
-            if (closed) return onClosedTap?.()
-            haptic('light')
-            setOpen(true)
-          }}
-          className={cn(
-            'rounded-xl font-bold transition active:scale-95',
-            qty > 0 ? 'bg-brand text-white' : 'bg-brand-soft text-brand',
-            size === 'sm' ? 'w-full py-1.5 text-sm' : 'px-4 py-1.5 text-sm',
-            dim,
-          )}
-        >
-          {qty > 0 ? `${qty} ta · o‘zgartirish` : 'Tanlash'}
-        </button>
-        <VariantSheet p={p} cart={cart} open={open} onClose={() => setOpen(false)} />
-      </div>
-    )
+  const add = () => {
+    if (closed) return onClosedTap?.()
+    haptic('light')
+    if (hasVariants) setOpen(true)
+    else cart.add(p)
   }
 
-  if (qty > 0)
-    return (
-      <div className={wrap}>
-        <QtyControl qty={qty} size={size} onChange={(q) => { haptic('light'); cart.setQty(p.id, q) }} />
-      </div>
-    )
   return (
-    <button
-      onClick={() => {
-        if (closed) return onClosedTap?.()
-        haptic('light')
-        cart.add(p)
-      }}
-      className={cn(
-        'rounded-xl bg-brand-soft font-bold text-brand transition active:scale-95',
-        size === 'sm' ? 'mt-2 w-full py-1.5 text-sm' : 'px-4 py-1.5 text-sm',
-        dim,
-      )}
-    >
-      + Qo‘shish
-    </button>
-  )
+		<div className='flex  w-[261px] shrink-0 snap-start flex-col overflow-hidden rounded-[10px] bg-white border border-gray-200'>
+			<div className='relative h-[232px] w-full shrink-0 bg-gray-50'>
+				{isUrl ? (
+					<img src={p.image} alt={p.name} className='h-full w-full object-cover' loading='lazy' />
+				) : (
+					<div className='flex h-full w-full items-center justify-center text-7xl'>
+						{p.image || '🍽'}
+					</div>
+				)}
+				{discount > 0 && (
+					<span className='absolute left-3 top-3 rounded-md bg-yellow-300 px-2 py-0.5 text-xs font-extrabold text-gray-900 shadow-sm'>
+						−{discount}%
+					</span>
+				)}
+				<span className='absolute bottom-3 left-3 rounded-md bg-brand px-3 py-1.5 text-sm font-bold text-white shadow-md'>
+					{money(p.price, market.currency)}
+					{hasVariants && <span className='ml-1 text-xs font-medium opacity-80'>dan</span>}
+				</span>
+				{!p.available && (
+					<span className='absolute inset-x-0 bottom-0 bg-black/55 py-1 text-center text-xs font-semibold text-white'>
+						Tugagan
+					</span>
+				)}
+			</div>
+
+			<div className='flex min-h-0 flex-1 justify-between flex-col p-2 text-center'>
+				<div className='line-clamp-2 text-lg font-bold leading-tight'>{p.name}</div>
+				{(p.description || hasVariants) && (
+					<div className='mt-1 line-clamp-2 text-sm leading-snug text-gray-500'>
+						{p.description || p.variants!.map(x => x.name).join(' · ')}
+					</div>
+				)}
+				<div className=' pt-2'>
+					{!p.available ? (
+						<div className='flex h-[52px] items-center justify-center rounded-[10px] bg-gray-200 text-sm font-semibold text-gray-500'>
+							Tugagan
+						</div>
+					) : qty > 0 && !hasVariants ? (
+						<div
+							className={cn('flex h-[52px] items-center justify-between rounded-[10px] px-2', dark)}
+						>
+							<button
+								onClick={() => {
+									haptic('light')
+									cart.setQty(p.id, qty - 1)
+								}}
+								className='h-10 w-10 rounded-lg text-xl font-bold active:bg-white/10'
+								aria-label='Kamaytirish'
+							>
+								−
+							</button>
+							<span className='text-base font-bold'>{qty}</span>
+							<button
+								onClick={() => {
+									haptic('light')
+									cart.setQty(p.id, qty + 1)
+								}}
+								className='h-10 w-10 rounded-lg text-xl font-bold active:bg-white/10'
+								aria-label='Ko‘paytirish'
+							>
+								+
+							</button>
+						</div>
+					) : (
+						<button
+							onClick={add}
+							className={cn(
+								'h-[52px] w-full rounded-[10px] text-sm font-semibold transition active:scale-[0.98]',
+								dark,
+								closed && 'opacity-60',
+							)}
+						>
+							{qty > 0 ? `${qty} ta · o‘zgartirish` : hasVariants ? 'Tanlash' : 'Savatga qo‘shish'}
+						</button>
+					)}
+				</div>
+			</div>
+
+			{hasVariants && <VariantSheet p={p} cart={cart} open={open} onClose={() => setOpen(false)} />}
+		</div>
+	)
+}
+
+/**
+ * Marketplace-style card: big square picture, discount badge, round "+" on the picture,
+ * then price (old price struck through), name and a one-line description.
+ */
+function ProductCard({
+	p,
+	cart,
+	closed,
+	onClosedTap,
+	className,
+}: {
+	p: Product
+	cart: ReturnType<typeof useMarketCart>
+	closed?: boolean
+	onClosedTap?: () => void
+	className?: string
+}) {
+	const { market } = useMarket()
+	const [open, setOpen] = useState(false)
+	const qty = cart.qtyOf(p.id)
+	const hasVariants = !!p.variants?.length
+	const isUrl = !!p.image && /^https?:\/\//.test(p.image)
+	const discount =
+		p.oldPrice && p.oldPrice > p.price ? Math.round((1 - p.price / p.oldPrice) * 100) : 0
+
+	// while closed the button stays tappable on purpose: a dead button reads as a broken site
+	const onPlus = () => {
+		if (closed) return onClosedTap?.()
+		haptic('light')
+		if (hasVariants) setOpen(true)
+		else cart.add(p)
+	}
+
+	return (
+		<div
+			className={cn(
+				'flex flex-col rounded-2xl bg-white p-2 shadow-sm',
+				!p.available && 'opacity-60',
+				className,
+			)}
+		>
+			<div className='relative aspect-square w-full overflow-hidden rounded-xl bg-gray-50'>
+				{isUrl ? (
+					<img src={p.image} alt={p.name} className='h-full w-full object-cover' loading='lazy' />
+				) : (
+					<div className='flex h-full w-full items-center justify-center text-6xl'>
+						{p.image || '🍽'}
+					</div>
+				)}
+
+				{discount > 0 && (
+					<span className='absolute left-2 top-2 rounded-lg bg-yellow-300 px-2 py-0.5 text-xs font-extrabold text-gray-900 shadow-sm'>
+						−{discount}%
+					</span>
+				)}
+
+				{!p.available && (
+					<span className='absolute inset-x-0 bottom-0 bg-black/55 py-1 text-center text-xs font-semibold text-white'>
+						Tugagan
+					</span>
+				)}
+
+				{p.available && (
+					<div className='absolute bottom-2 right-2'>
+						{qty > 0 && !hasVariants ? (
+							<div className='rounded-xl bg-white shadow-md'>
+								<QtyControl
+									qty={qty}
+									size='sm'
+									onChange={q => {
+										haptic('light')
+										cart.setQty(p.id, q)
+									}}
+								/>
+							</div>
+						) : (
+							<button
+								onClick={onPlus}
+								className={cn(
+									'flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand shadow-md transition active:scale-95',
+									closed && 'opacity-60',
+								)}
+								aria-label={qty > 0 ? 'O‘zgartirish' : 'Qo‘shish'}
+							>
+								{qty > 0 ? (
+									<span className='text-sm font-extrabold'>{qty}</span>
+								) : (
+									<Plus size={22} strokeWidth={2.75} />
+								)}
+							</button>
+						)}
+					</div>
+				)}
+			</div>
+
+			<div className='mt-2 px-1 pb-1'>
+				<div className='text-lg font-extrabold leading-tight text-brand'>
+					{money(p.price, market.currency)}
+					{hasVariants && <span className='ml-1 text-xs font-medium text-gray-400'>dan</span>}
+				</div>
+				{discount > 0 && (
+					<div className='text-sm text-gray-400 line-through'>
+						{money(p.oldPrice!, market.currency)}
+					</div>
+				)}
+				<div className='mt-1 line-clamp-2 text-[15px] font-medium leading-snug'>{p.name}</div>
+				{(p.description || hasVariants) && (
+					<div className='mt-0.5 line-clamp-1 text-sm text-gray-400'>
+						{p.description || p.variants!.map(x => x.name).join(' · ')}
+					</div>
+				)}
+			</div>
+
+			{hasVariants && <VariantSheet p={p} cart={cart} open={open} onClose={() => setOpen(false)} />}
+		</div>
+	)
 }
 
 function VariantSheet({ p, cart, open, onClose }: { p: Product; cart: ReturnType<typeof useMarketCart>; open: boolean; onClose: () => void }) {

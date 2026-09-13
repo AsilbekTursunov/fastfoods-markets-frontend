@@ -3,6 +3,7 @@ import { ArrowLeft, Trash2 } from 'lucide-react'
 import { useMarket } from './MarketContext'
 import { keyOf, unitPrice, useMarketCart } from '@/store/cart'
 import { money } from '@/lib/format'
+import { estimateDeliveryFee, usesDistancePricing } from '@/lib/geo'
 import { Button, Empty, QtyControl } from '@/components/ui'
 import { haptic } from '@/lib/telegram'
 
@@ -12,11 +13,14 @@ export default function CartPage() {
   const navigate = useNavigate()
 
   const belowMin = cart.subtotal < market.minOrder
-  const deliveryFee = market.freeDeliveryFrom && cart.subtotal >= market.freeDeliveryFrom ? 0 : market.deliveryFee
+  // no location yet, so this is the lowest possible fee; checkout shows the exact one
+  const est = estimateDeliveryFee(market, cart.subtotal, null)
+  const deliveryFee = est.fee
+  const distancePricing = usesDistancePricing(market)
 
   return (
-    <div className="pb-40">
-      <div className="sticky top-0 z-20 flex items-center gap-2 bg-[#f5f5f7] px-4 py-3">
+    <div className="pb-bar-lg">
+      <div className="sticky top-0 z-20 flex items-center gap-2 bg-[#f5f5f7] px-4 pb-3 pt-safe">
         <button onClick={() => navigate(-1)} className="rounded-xl bg-white p-2 shadow-sm">
           <ArrowLeft size={20} />
         </button>
@@ -44,7 +48,7 @@ export default function CartPage() {
           <div className="space-y-2 px-4">
             {cart.lines.map((l) => (
               <div key={keyOf(l)} className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-3xl">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-4xl">
                   {l.product.image && /^https?:\/\//.test(l.product.image) ? (
                     <img src={l.product.image} className="h-full w-full rounded-xl object-cover" />
                   ) : (
@@ -66,7 +70,11 @@ export default function CartPage() {
 
           <div className="mx-4 mt-4 rounded-2xl bg-white p-4 text-sm shadow-sm">
             <Row label="Mahsulotlar" value={money(cart.subtotal, market.currency)} />
-            <Row label="Yetkazib berish" value={deliveryFee === 0 ? 'Bepul' : money(deliveryFee, market.currency)} hint="olib ketishda 0" />
+            <Row
+              label="Yetkazib berish"
+              value={deliveryFee === 0 ? 'Bepul' : `${money(deliveryFee, market.currency)}${distancePricing && deliveryFee > 0 ? ' dan' : ''}`}
+              hint={distancePricing ? `${market.deliveryBaseKm} km gacha, keyin +${money(market.deliveryPerKm ?? 0, market.currency)}/km` : 'olib ketishda 0'}
+            />
             <div className="my-2 border-t border-dashed" />
             <Row label="Jami (yetkazib berish bilan)" value={money(cart.subtotal + deliveryFee, market.currency)} bold />
             {market.freeDeliveryFrom && cart.subtotal < market.freeDeliveryFrom && (

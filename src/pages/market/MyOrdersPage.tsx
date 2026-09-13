@@ -56,7 +56,7 @@ export default function MyOrdersPage() {
 
   return (
     <div className="pb-safe">
-      <div className="sticky top-0 z-20 flex items-center gap-2 bg-[#f5f5f7] px-4 py-3">
+      <div className="sticky top-0 z-20 flex items-center gap-2 bg-[#f5f5f7] px-4 pb-3 pt-safe">
         <button onClick={() => navigate(-1)} className="rounded-xl bg-white p-2 shadow-sm">
           <ArrowLeft size={20} />
         </button>

@@ -8,7 +8,15 @@
 
 :root {
   --brand: #e11d48;
+  /* device insets (notch / home indicator) */
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* set by lib/telegram.ts from the Mini App SDK; 0 outside Telegram */
+  --tg-top: 0px;
+  --tg-bottom: 0px;
+  /* whichever is larger — Telegram already folds the notch into its own number */
+  --inset-top: max(var(--safe-top), var(--tg-top));
+  --inset-bottom: max(var(--safe-bottom), var(--tg-bottom));
 }
 
 html, body, #root {
@@ -30,7 +38,14 @@ input, textarea, select, button {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-.pb-safe { padding-bottom: calc(1rem + var(--safe-bottom)); }
+/* content stays clear of the edges on small phones and inside the Telegram mini app */
+.pb-safe { padding-bottom: calc(1rem + var(--inset-bottom)); }
+.pt-safe { padding-top: calc(0.75rem + var(--inset-top)); }
+/* hero headers: a bit more breathing room than a sticky bar */
+.pt-hero { padding-top: calc(2rem + var(--inset-top)); }
+/* bottom padding for scrolling pages that end in a fixed bar */
+.pb-bar { padding-bottom: calc(7rem + var(--inset-bottom)); }
+.pb-bar-lg { padding-bottom: calc(10rem + var(--inset-bottom)); }
 
 @keyframes pop {
   0% { transform: scale(0.8); opacity: 0; }

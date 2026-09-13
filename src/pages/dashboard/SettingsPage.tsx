@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { RefreshCw, Send, Eye, EyeOff, Megaphone, ExternalLink, Bike, Plus, Trash2 } from 'lucide-react'
+import { RefreshCw, Send, Eye, EyeOff, Megaphone, ExternalLink, Bike, Plus, Trash2, Navigation, MapPin, X } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError, isMock } from '@/lib/api'
+import { requestLocation } from '@/lib/telegram'
+import { mapsLink } from '@/lib/format'
 import { DEFAULT_PROMO_BUTTON, DEFAULT_PROMO_TEXT } from '@/lib/mock'
 import { Button, Input, Spinner, Textarea, cn } from '@/components/ui'
 import { DELIVERY_LABEL, PAYMENT_LABEL } from '@/components/status'
@@ -17,6 +19,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tg, setTg] = useState<TelegramStatus | null>(null)
+  const [locBusy, setLocBusy] = useState(false)
   const [tgBusy, setTgBusy] = useState(false)
   const [tgMsg, setTgMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [showToken, setShowToken] = useState(false)
@@ -44,6 +47,14 @@ export default function SettingsPage() {
   const setCourier = (i: number, patch: Partial<Courier>) => setS({ ...s, couriers: couriers.map((c, k) => (k === i ? { ...c, ...patch } : c)) })
   const addCourier = () => setS({ ...s, couriers: [...couriers, { name: '', tgId: '' }] })
   const removeCourier = (i: number) => setS({ ...s, couriers: couriers.filter((_, k) => k !== i) })
+
+  const pickMyLocation = async () => {
+    setLocBusy(true)
+    const loc = await requestLocation()
+    setLocBusy(false)
+    if (loc) setS({ ...s, location: { lat: Math.round(loc.lat * 1e6) / 1e6, lng: Math.round(loc.lng * 1e6) / 1e6 } })
+    else setError('Joylashuvni olib bo‘lmadi — brauzerga ruxsat bering yoki koordinatalarni qo‘lda kiriting')
+  }
 
   const sendPromo = async () => {
     setPromoBusy(true)
@@ -140,9 +151,79 @@ export default function SettingsPage() {
       <section className="space-y-3 rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="text-sm font-bold text-gray-500">Yetkazib berish</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <Input label="Narxi" type="number" min={0} value={s.deliveryFee} onChange={(e) => setS({ ...s, deliveryFee: Number(e.target.value) })} />
+          <Input label="Narxi (bazaviy)" type="number" min={0} value={s.deliveryFee} onChange={(e) => setS({ ...s, deliveryFee: Number(e.target.value) })} hint="bazaviy masofagacha" />
           <Input label="Min. buyurtma" type="number" min={0} value={s.minOrder} onChange={(e) => setS({ ...s, minOrder: Number(e.target.value) })} />
           <Input label="Bepul (dan)" type="number" min={0} value={s.freeDeliveryFrom ?? ''} onChange={(e) => setS({ ...s, freeDeliveryFrom: e.target.value ? Number(e.target.value) : undefined })} />
+        </div>
+
+        <div className="rounded-xl bg-gray-50 p-3">
+          <div className="mb-2 text-xs font-bold uppercase text-gray-400">Masofa bo‘yicha narx</div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Bazaviy masofa (km)"
+              type="number"
+              min={0}
+              step="0.1"
+              inputMode="decimal"
+              value={s.deliveryBaseKm ?? 3}
+              onChange={(e) => setS({ ...s, deliveryBaseKm: Number(e.target.value) })}
+            />
+            <Input
+              label="Har qo‘shimcha km (so‘m)"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={s.deliveryPerKm ?? 0}
+              onChange={(e) => setS({ ...s, deliveryPerKm: Number(e.target.value) })}
+              hint="0 = masofadan qat’i nazar bir xil narx"
+            />
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            Masalan «3 km gacha 10 000, keyin har km +5 000»: Narxi <b>10000</b>, Bazaviy masofa <b>3</b>, Har km <b>5000</b>.
+            Boshlangan kilometr to‘liq hisoblanadi (3.2 km → +1 km). Ishlashi uchun pastda market joylashuvi kerak.
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-gray-50 p-3">
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-gray-400">
+            <MapPin size={13} /> Market joylashuvi
+            {s.location && (
+              <a href={mapsLink(s.location.lat, s.location.lng)} target="_blank" rel="noreferrer" className="ml-auto normal-case text-brand underline">
+                xaritada
+              </a>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Kenglik (lat)"
+              type="number"
+              step="any"
+              inputMode="decimal"
+              value={s.location?.lat ?? ''}
+              onChange={(e) => setS({ ...s, location: e.target.value ? { lat: Number(e.target.value), lng: s.location?.lng ?? 0 } : null })}
+              placeholder="41.3111"
+            />
+            <Input
+              label="Uzunlik (lng)"
+              type="number"
+              step="any"
+              inputMode="decimal"
+              value={s.location?.lng ?? ''}
+              onChange={(e) => setS({ ...s, location: e.target.value ? { lat: s.location?.lat ?? 0, lng: Number(e.target.value) } : null })}
+              placeholder="69.2797"
+            />
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" size="sm" loading={locBusy} onClick={pickMyLocation}>
+              <Navigation size={14} /> Hozirgi joylashuvni olish
+            </Button>
+            {s.location && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => setS({ ...s, location: null })}>
+                <X size={14} /> Tozalash
+              </Button>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">Oshxonada turib «Hozirgi joylashuvni olish» ni bosing, yoki Google Maps’dan koordinatalarni nusxalang.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {ALL_DELIVERY.map((d) => (

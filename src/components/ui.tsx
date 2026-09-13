@@ -141,10 +141,11 @@ export function Sheet({ open, onClose, children, title }: { open: boolean; onClo
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div className="animate-slide-up w-full max-w-lg rounded-t-3xl bg-white pb-safe" onClick={(e) => e.stopPropagation()}>
-        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-300" />
-        {title && <div className="px-5 pt-4 text-lg font-bold">{title}</div>}
-        <div className="px-5 pt-3">{children}</div>
+      {/* capped height + inner scroll: a tall sheet must never hide its own buttons */}
+      <div className="animate-slide-up flex max-h-[90vh] w-full max-w-lg flex-col rounded-t-3xl bg-white pb-safe" onClick={(e) => e.stopPropagation()}>
+        <div className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-gray-300" />
+        {title && <div className="shrink-0 px-5 pt-4 text-lg font-bold">{title}</div>}
+        <div className="min-h-0 overflow-y-auto px-5 pt-3">{children}</div>
       </div>
     </div>
   )

@@ -44,6 +44,9 @@ export interface TgWebApp {
   themeParams: Record<string, string>
   isExpanded: boolean
   viewportHeight: number
+  /** Bot API 8.0+: device notch / home indicator and the Telegram header in fullscreen */
+  safeAreaInset?: { top: number; bottom: number; left: number; right: number }
+  contentSafeAreaInset?: { top: number; bottom: number; left: number; right: number }
   ready(): void
   expand(): void
   close(): void
@@ -99,6 +102,22 @@ export const tg: TgWebApp | undefined =
 
 export const isTelegram = Boolean(tg && tg.initData)
 
+/**
+ * Publish Telegram's safe areas as CSS variables so pages can keep content clear of the
+ * notch, the home indicator and the mini-app header. The CSS falls back to env() when
+ * these stay at 0 (browser, old clients).
+ */
+function applySafeArea() {
+  if (!tg) return
+  const root = document.documentElement.style
+  const sa = tg.safeAreaInset ?? { top: 0, bottom: 0 }
+  const ca = tg.contentSafeAreaInset ?? { top: 0, bottom: 0 }
+  root.setProperty('--tg-top', `${(sa.top ?? 0) + (ca.top ?? 0)}px`)
+  root.setProperty('--tg-bottom', `${(sa.bottom ?? 0) + (ca.bottom ?? 0)}px`)
+}
+
+let safeAreaBound = false
+
 export function initTelegram(brand?: string) {
   if (!tg) return
   try {
@@ -106,6 +125,13 @@ export function initTelegram(brand?: string) {
     tg.expand()
     if (brand) {
       tg.setHeaderColor(brand)
+    }
+    applySafeArea()
+    if (!safeAreaBound) {
+      safeAreaBound = true
+      tg.onEvent('safeAreaChanged', applySafeArea)
+      tg.onEvent('contentSafeAreaChanged', applySafeArea)
+      tg.onEvent('viewportChanged', applySafeArea)
     }
   } catch {
     /* ignore - old client */

@@ -21,7 +21,7 @@ export default function SuccessPage() {
   if (!order) return <Spinner className="h-screen" />
 
   return (
-    <div className="px-4 pb-safe pt-10">
+    <div className="px-4 pb-safe pt-hero">
       <div className="animate-pop text-center">
         <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 text-4xl">✅</div>
         <h1 className="mt-4 text-2xl font-extrabold">Buyurtma qabul qilindi!</h1>

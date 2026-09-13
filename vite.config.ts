@@ -22,6 +22,6 @@ export default defineConfig({
 			// forwards /api/* to your backend during development
 			'/api': { target: 'https://fastfood-markets-backend.up.railway.app', changeOrigin: true },
 		},
-		allowedHosts: ['d0bf-144-124-192-212.ngrok-free.app'],
+		allowedHosts: ['ce2c-144-124-199-129.ngrok-free.app'],
 	},
 })
