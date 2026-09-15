@@ -32,6 +32,22 @@ export function onUpdateAvailable(fn: (available: boolean) => void): () => void 
   return () => updateListeners.delete(fn)
 }
 
+/** iPhone / iPad — including iPadOS, which reports itself as a Mac with a touch screen. */
+export function isIOS(): boolean {
+  const ua = navigator.userAgent
+  return /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+}
+
+export function isAndroid(): boolean {
+  return /Android/i.test(navigator.userAgent)
+}
+
+/** On iOS only Safari can add to the home screen; Chrome/Telegram/Instagram views cannot. */
+export function isIOSSafari(): boolean {
+  const ua = navigator.userAgent
+  return isIOS() && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|Telegram|Instagram|FBAN|FBAV/.test(ua)
+}
+
 /** True once the app runs from the home screen rather than a browser tab. */
 export function isInstalled(): boolean {
   return window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true

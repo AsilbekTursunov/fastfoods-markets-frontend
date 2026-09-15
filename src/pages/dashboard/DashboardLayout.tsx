@@ -103,10 +103,14 @@ export default function DashboardLayout() {
         {/* mobile header */}
         <header className="flex items-center gap-3 border-b border-gray-200 bg-white px-4 pb-3 pt-safe md:hidden">
           <div className="text-2xl">{svc.logo}</div>
-          <div className="font-extrabold">{svc.name}</div>
-          <button onClick={logout} className="ml-auto rounded-lg p-2 text-gray-500">
-            <LogOut size={18} />
-          </button>
+          <div className="min-w-0 truncate font-extrabold">{svc.name}</div>
+          <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* phones: one-tap install (Android) or the Add-to-Home-Screen steps (iPhone) */}
+            <InstallButton variant="icon" />
+            <button onClick={logout} className="rounded-lg p-2 text-gray-500" aria-label="Chiqish">
+              <LogOut size={18} />
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 pb-bar md:p-6 md:pb-6">

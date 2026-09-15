@@ -127,7 +127,9 @@ export interface MarketSettings {
   workingHours: { open: string; close: string }
   isOpen: boolean
   telegramGroupId?: string
-  /** personal chat / channel that also receives every new order */
+  /** owners: each gets every order with action buttons in their private chat; any of them may act */
+  owners?: Owner[]
+  /** @deprecated replaced by `owners`; backend still returns the first owner's id here */
   telegramOwnerId?: string
   paymentTypes: PaymentType[]
   deliveryTypes: DeliveryType[]
@@ -141,6 +143,13 @@ export interface MarketSettings {
   promoButtonText?: string
   /** couriers who receive every delivery order once it is accepted */
   couriers?: Courier[]
+}
+
+/** A market owner: gets every order with the action buttons in their private Telegram chat. */
+export interface Owner {
+  name: string
+  /** Telegram user id, digits only (from @userinfobot) */
+  tgId: string
 }
 
 /** A courier: gets the full order (address, phone, map) in their private Telegram chat. */

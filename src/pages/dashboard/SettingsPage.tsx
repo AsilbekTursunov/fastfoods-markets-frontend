@@ -7,7 +7,7 @@ import { mapsLink } from '@/lib/format'
 import { DEFAULT_PROMO_BUTTON, DEFAULT_PROMO_TEXT } from '@/lib/mock'
 import { Button, Input, Spinner, Textarea, cn } from '@/components/ui'
 import { DELIVERY_LABEL, PAYMENT_LABEL } from '@/components/status'
-import type { Courier, DeliveryType, MarketSettings, PaymentType, PromoTarget, TelegramStatus } from '@/types'
+import type { Courier, DeliveryType, MarketSettings, Owner, PaymentType, PromoTarget, TelegramStatus } from '@/types'
 
 const ALL_PAYMENTS: PaymentType[] = ['cash', 'card', 'click', 'payme']
 const ALL_DELIVERY: DeliveryType[] = ['delivery', 'pickup']
@@ -42,6 +42,11 @@ export default function SettingsPage() {
 
   const promoText = s.promoText ?? DEFAULT_PROMO_TEXT
   const promoButtonText = s.promoButtonText || DEFAULT_PROMO_BUTTON
+
+  const owners: Owner[] = s.owners ?? []
+  const setOwner = (i: number, patch: Partial<Owner>) => setS({ ...s, owners: owners.map((o, k) => (k === i ? { ...o, ...patch } : o)) })
+  const addOwner = () => setS({ ...s, owners: [...owners, { name: '', tgId: '' }] })
+  const removeOwner = (i: number) => setS({ ...s, owners: owners.filter((_, k) => k !== i) })
 
   const couriers: Courier[] = s.couriers ?? []
   const setCourier = (i: number, patch: Partial<Courier>) => setS({ ...s, couriers: couriers.map((c, k) => (k === i ? { ...c, ...patch } : c)) })
@@ -96,18 +101,25 @@ export default function SettingsPage() {
     setError(null)
     try {
       // send the full object: backend overwrites telegramBotToken with whatever we send
-      const cleaned: MarketSettings = { ...s, couriers: (s.couriers ?? []).filter((c) => c.name.trim() || c.tgId.trim()) }
+      const cleaned: MarketSettings = {
+        ...s,
+        owners: (s.owners ?? []).filter((o) => o.name.trim() || o.tgId.trim()),
+        couriers: (s.couriers ?? []).filter((c) => c.name.trim() || c.tgId.trim()),
+      }
       const saved = await api.updateSettings(service, cleaned)
       // the backend strips keys its schema does not know; keep them locally and warn
       const dropped: string[] = []
       const keep: Partial<MarketSettings> = {}
-      const check = (key: 'telegramOwnerId' | 'promoText' | 'promoButtonText', label: string) => {
+      const check = (key: 'promoText' | 'promoButtonText', label: string) => {
         if ((s[key] ?? '') !== '' && !saved[key]) {
           dropped.push(label)
           keep[key] = s[key]
         }
       }
-      check('telegramOwnerId', 'Egasi chat ID')
+      if (cleaned.owners?.length && !saved.owners) {
+        dropped.push('Egalari')
+        keep.owners = cleaned.owners
+      }
       check('promoText', 'Reklama matni')
       check('promoButtonText', 'Tugma matni')
       setUnsupported(dropped)
@@ -287,13 +299,37 @@ export default function SettingsPage() {
             placeholder="-1001234567890"
             hint="Botni guruhga admin qilib qo‘shing."
           />
-          <Input
-            label="Egasi (owner) chat ID"
-            value={s.telegramOwnerId ?? ''}
-            onChange={(e) => setS({ ...s, telegramOwnerId: e.target.value })}
-            placeholder="123456789"
-            hint="Har bir buyurtma shu shaxsiy chatga ham boradi."
-          />
+        </div>
+
+        <div className="rounded-xl bg-gray-50 p-3">
+          <div className="mb-1 flex items-center gap-2 text-xs font-bold uppercase text-gray-400">
+            Egalari (owner) {owners.length > 0 && <span className="normal-case text-gray-400">· {owners.length} ta</span>}
+          </div>
+          <p className="mb-2 text-xs text-gray-500">
+            Har bir buyurtma shu odamlarning shaxsiy chatiga <b>tugmalar bilan</b> boradi. Kim birinchi bossa holat o‘zgaradi va qolganlarning xabari ham yangilanadi.
+            Har biri botga bir marta <span className="font-mono">/start</span> bosgan bo‘lishi kerak.
+          </p>
+          {owners.length === 0 && <div className="mb-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-500">Hozircha egasi qo‘shilmagan — buyurtmalar faqat guruhga boradi.</div>}
+          <div className="space-y-2">
+            {owners.map((o, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+                <Input label={i === 0 ? 'Ismi' : undefined} value={o.name} onChange={(e) => setOwner(i, { name: e.target.value })} placeholder="Asilbek" />
+                <Input
+                  label={i === 0 ? 'Telegram ID' : undefined}
+                  value={o.tgId}
+                  onChange={(e) => setOwner(i, { tgId: e.target.value.replace(/\D/g, '') })}
+                  placeholder="123456789"
+                  inputMode="numeric"
+                />
+                <button type="button" onClick={() => removeOwner(i)} className="mb-0.5 rounded-xl p-3 text-red-500 hover:bg-red-50" aria-label="O‘chirish">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+          <Button type="button" variant="secondary" size="sm" className="mt-2" onClick={addOwner} disabled={owners.length >= 20}>
+            <Plus size={14} /> Egasi qo‘shish
+          </Button>
         </div>
         <p className="text-xs text-gray-400">
           Chat ID ni bilish uchun botga yozing yoki @userinfobot dan foydalaning. Guruh ID lari <span className="font-mono">-100</span> bilan boshlanadi.
@@ -362,7 +398,7 @@ export default function SettingsPage() {
             <span className="mb-1 block text-sm font-medium text-gray-700">Qayerga</span>
             <select value={promoTarget} onChange={(e) => setPromoTarget(e.target.value as PromoTarget)} className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-3">
               <option value="group">Guruhga</option>
-              <option value="owner">Egasiga (shaxsiy)</option>
+              <option value="owner">Egalariga (shaxsiy chatlar)</option>
               <option value="both">Ikkalasiga</option>
             </select>
           </label>
