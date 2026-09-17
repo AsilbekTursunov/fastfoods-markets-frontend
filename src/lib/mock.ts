@@ -17,6 +17,8 @@ import type {
   Product,
   PromoInput,
   PromoResult,
+  PromoSchedule,
+  PromoScheduleInput,
   TelegramStatus,
 } from '@/types'
 import type { Api } from './api'
@@ -195,6 +197,16 @@ function saveSettings(slug: string, s: MarketSettings) {
   const all = read<Record<string, MarketSettings>>(LS_SETTINGS, {})
   all[slug] = s
   write(LS_SETTINGS, all)
+}
+
+const LS_PROMOS = 'ffm:mock:promos'
+function getPromos(slug: string): PromoSchedule[] {
+  return read<Record<string, PromoSchedule[]>>(LS_PROMOS, {})[slug] ?? []
+}
+function savePromos(slug: string, list: PromoSchedule[]) {
+  const all = read<Record<string, PromoSchedule[]>>(LS_PROMOS, {})
+  all[slug] = list
+  write(LS_PROMOS, all)
 }
 function getProducts(slug: string): Product[] {
   const all = read<Record<string, Product[]>>(LS_PRODUCTS, {})
@@ -491,6 +503,76 @@ export const mockApi: Api = {
     return {
       sent: usable.map((t) => ({ chat: t.chat, chatId: t.chatId!, messageId: Math.floor(Math.random() * 10000), chatTitle: 'Mock chat' })),
     }
+  },
+
+  async uploadPromoImage(slug: string, file: File): Promise<string> {
+    const url = await mockApi.uploadImage(slug, file)
+    saveSettings(slug, { ...getSettings(slug), promoImageUrl: url })
+    return url
+  },
+  async deletePromoImage(slug: string): Promise<void> {
+    await delay(150)
+    saveSettings(slug, { ...getSettings(slug), promoImageUrl: null })
+  },
+
+  async listPromos(slug: string): Promise<PromoSchedule[]> {
+    await delay(150)
+    return getPromos(slug)
+  },
+  async createPromo(slug: string, input: PromoScheduleInput): Promise<PromoSchedule> {
+    await delay(200)
+    const list = getPromos(slug)
+    const p: PromoSchedule = {
+      id: (list.at(-1)?.id ?? 0) + 1,
+      text: input.text,
+      imageUrl: null,
+      buttonText: input.buttonText ?? '',
+      buttonUrl: input.buttonUrl ?? '',
+      intervalHours: input.intervalHours,
+      enabled: input.enabled ?? true,
+      nextRunAt: new Date(Date.now() + input.intervalHours * 3600_000).toISOString(),
+      lastSentAt: null,
+      sentCount: 0,
+      lastError: null,
+      createdAt: new Date().toISOString(),
+    }
+    savePromos(slug, [...list, p])
+    return p
+  },
+  async updatePromo(slug: string, id: number, input: PromoScheduleInput): Promise<PromoSchedule> {
+    await delay(200)
+    const list = getPromos(slug)
+    const cur = list.find((p) => p.id === id)
+    if (!cur) throw new Error('E‘lon topilmadi')
+    const next: PromoSchedule = { ...cur, text: input.text, buttonText: input.buttonText ?? '', buttonUrl: input.buttonUrl ?? '', intervalHours: input.intervalHours, enabled: input.enabled ?? cur.enabled }
+    savePromos(slug, list.map((p) => (p.id === id ? next : p)))
+    return next
+  },
+  async deletePromo(slug: string, id: number): Promise<void> {
+    await delay(150)
+    savePromos(slug, getPromos(slug).filter((p) => p.id !== id))
+  },
+  async uploadPromoScheduleImage(slug: string, id: number, file: File): Promise<PromoSchedule> {
+    const url = await mockApi.uploadImage(slug, file)
+    const list = getPromos(slug).map((p) => (p.id === id ? { ...p, imageUrl: url } : p))
+    savePromos(slug, list)
+    return list.find((p) => p.id === id)!
+  },
+  async deletePromoScheduleImage(slug: string, id: number): Promise<PromoSchedule> {
+    await delay(150)
+    const list = getPromos(slug).map((p) => (p.id === id ? { ...p, imageUrl: null } : p))
+    savePromos(slug, list)
+    return list.find((p) => p.id === id)!
+  },
+  async sendPromoNow(slug: string, id: number): Promise<PromoSchedule> {
+    await delay(400)
+    const now = new Date()
+    const list = getPromos(slug).map((p) =>
+      p.id === id ? { ...p, lastSentAt: now.toISOString(), sentCount: p.sentCount + 1, nextRunAt: new Date(now.getTime() + p.intervalHours * 3600_000).toISOString(), lastError: null } : p,
+    )
+    savePromos(slug, list)
+    console.info(`[mock] promo #${id} sent now`)
+    return list.find((p) => p.id === id)!
   },
 
   async getSettings(slug: string): Promise<MarketSettings> {

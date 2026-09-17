@@ -141,6 +141,8 @@ export interface MarketSettings {
   /** promo message shown above the "open mini app" button */
   promoText?: string
   promoButtonText?: string
+  /** one image sent above the promo text — managed by uploadPromoImage / deletePromoImage, read-only here */
+  promoImageUrl?: string | null
   /** couriers who receive every delivery order once it is accepted */
   couriers?: Courier[]
 }
@@ -178,6 +180,31 @@ export interface PromoSentTo {
 
 export interface PromoResult {
   sent: PromoSentTo[]
+}
+
+/** "Message interval": one announcement, re-sent to the group every `intervalHours`. */
+export interface PromoSchedule {
+  id: number
+  text: string
+  imageUrl: string | null
+  buttonText: string
+  /** empty = the mini app deep link */
+  buttonUrl: string
+  intervalHours: number
+  enabled: boolean
+  nextRunAt: string
+  lastSentAt: string | null
+  sentCount: number
+  lastError: string | null
+  createdAt: string
+}
+
+export interface PromoScheduleInput {
+  text: string
+  buttonText?: string
+  buttonUrl?: string
+  intervalHours: number
+  enabled?: boolean
 }
 
 export interface CategoryTemplate {

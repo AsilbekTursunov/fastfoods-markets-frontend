@@ -7,6 +7,8 @@ import type {
   DashboardStats,
   Market,
   MarketSettings,
+  PromoSchedule,
+  PromoScheduleInput,
   Order,
   OrderStatus,
   Product,
@@ -120,7 +122,36 @@ export interface Api {
   telegramTest(slug: string): Promise<{ ok: boolean; chatId?: number | string; chatTitle?: string | null }>
   /** send the "open mini app" promo message with an inline web-app button */
   sendPromo(slug: string, input: PromoInput): Promise<PromoResult>
+  /** the single promo image: saved immediately, deleting removes the file from storage too */
+  uploadPromoImage(slug: string, file: File): Promise<string>
+  deletePromoImage(slug: string): Promise<void>
+  // "Message interval" announcements
+  listPromos(slug: string): Promise<PromoSchedule[]>
+  createPromo(slug: string, input: PromoScheduleInput): Promise<PromoSchedule>
+  updatePromo(slug: string, id: number, input: PromoScheduleInput): Promise<PromoSchedule>
+  deletePromo(slug: string, id: number): Promise<void>
+  uploadPromoScheduleImage(slug: string, id: number, file: File): Promise<PromoSchedule>
+  deletePromoScheduleImage(slug: string, id: number): Promise<PromoSchedule>
+  sendPromoNow(slug: string, id: number): Promise<PromoSchedule>
   stats(slug: string): Promise<DashboardStats>
+}
+
+/** multipart POST: do NOT set Content-Type, the browser adds the boundary */
+async function uploadFile<T>(slug: string, path: string, file: File): Promise<T> {
+  const s = getSession(slug)
+  const fd = new FormData()
+  fd.append('file', file)
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, { method: 'POST', headers: s ? { Authorization: `Bearer ${s.token}` } : {}, body: fd })
+  } catch {
+    throw new ApiError(0, 'Server bilan aloqa yo‘q')
+  }
+  if (!res.ok) {
+    handleUnauthorized(slug, res)
+    throw await readError(res)
+  }
+  return (await res.json()) as T
 }
 
 const realApi: Api = {
@@ -150,29 +181,22 @@ const realApi: Api = {
   updateCategory: (slug, id, c) => http<Category>(`/dashboard/${slug}/categories/${id}`, { method: 'PUT', body: JSON.stringify(c), slug }),
   deleteCategory: (slug, id) => http<void>(`/dashboard/${slug}/categories/${id}`, { method: 'DELETE', slug }),
 
-  // multipart: do NOT set Content-Type, the browser adds the boundary
-  uploadImage: async (slug, file) => {
-    const s = getSession(slug)
-    const fd = new FormData()
-    fd.append('file', file)
-    let res: Response
-    try {
-      res = await fetch(`${BASE}/dashboard/${slug}/upload`, { method: 'POST', headers: s ? { Authorization: `Bearer ${s.token}` } : {}, body: fd })
-    } catch {
-      throw new ApiError(0, 'Server bilan aloqa yo‘q')
-    }
-    if (!res.ok) {
-      handleUnauthorized(slug, res)
-      throw await readError(res)
-    }
-    return ((await res.json()) as { url: string }).url
-  },
+  uploadImage: async (slug, file) => ((await uploadFile<{ url: string }>(slug, `/dashboard/${slug}/upload`, file)).url),
 
   getSettings: (slug) => http<MarketSettings>(`/dashboard/${slug}/settings`, { slug }),
   updateSettings: (slug, s) => http<MarketSettings>(`/dashboard/${slug}/settings`, { method: 'PUT', body: JSON.stringify(s), slug }),
   telegramStatus: (slug) => http<TelegramStatus>(`/dashboard/${slug}/telegram`, { slug }),
   telegramTest: (slug) => http(`/dashboard/${slug}/telegram/test`, { method: 'POST', slug }),
   sendPromo: (slug, input) => http<PromoResult>(`/dashboard/${slug}/telegram/promo`, { method: 'POST', body: JSON.stringify(input), slug }),
+  uploadPromoImage: async (slug, file) => (await uploadFile<{ url: string }>(slug, `/dashboard/${slug}/telegram/promo/image`, file)).url,
+  deletePromoImage: (slug) => http<void>(`/dashboard/${slug}/telegram/promo/image`, { method: 'DELETE', slug }),
+  listPromos: (slug) => http<PromoSchedule[]>(`/dashboard/${slug}/promos`, { slug }),
+  createPromo: (slug, input) => http<PromoSchedule>(`/dashboard/${slug}/promos`, { method: 'POST', body: JSON.stringify(input), slug }),
+  updatePromo: (slug, id, input) => http<PromoSchedule>(`/dashboard/${slug}/promos/${id}`, { method: 'PUT', body: JSON.stringify(input), slug }),
+  deletePromo: (slug, id) => http<void>(`/dashboard/${slug}/promos/${id}`, { method: 'DELETE', slug }),
+  uploadPromoScheduleImage: (slug, id, file) => uploadFile<PromoSchedule>(slug, `/dashboard/${slug}/promos/${id}/image`, file),
+  deletePromoScheduleImage: (slug, id) => http<PromoSchedule>(`/dashboard/${slug}/promos/${id}/image`, { method: 'DELETE', slug }),
+  sendPromoNow: (slug, id) => http<PromoSchedule>(`/dashboard/${slug}/promos/${id}/send`, { method: 'POST', slug }),
   stats: (slug) => http<DashboardStats>(`/dashboard/${slug}/stats`, { slug }),
 }
 
